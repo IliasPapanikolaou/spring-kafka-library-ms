@@ -44,7 +44,25 @@ Important configurations:
   - Integer value represented in milliseconds
   - Default value is 100ms
 
-
 > For Real Databases Integration Tests see: https://www.testcontainers.org/
 > and 
 > https://youtu.be/Wpz6b8ZEgcU
+
+### Recovery in Kafka Consumer
+
+When number of retries are exhausted due to an error, we can configure the consumer to Recover 
+and retry to succeed later.
+
+Recovery Type:
+1. Reprocess the failed record (message) again
+    - Example: Service that the Consumer interacts is temporarily down
+2. Discard the Message and move on
+    - Invalid message: Parsing error, Invalid Event
+
+Reprocess the failed message options:
+1. Publish the failed message to a Retry Topic
+2. Save the failed message in a DB and retry with a Scheduler
+
+Discard the message options:
+1. Publish the failed record in DeadLetter Topic for tracking purposes
+2. Save the failed record into a Database for tracking purposes

@@ -5,6 +5,10 @@ spring:
   profiles:
     active: local
 
+topics:
+  retry: 'library-events.RETRY'
+  dlt: 'library-events.DLT' # Dead letter topic
+
 ---
 spring:
   config:

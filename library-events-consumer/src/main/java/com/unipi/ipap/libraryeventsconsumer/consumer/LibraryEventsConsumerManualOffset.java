@@ -17,6 +17,7 @@ public class LibraryEventsConsumerManualOffset implements AcknowledgingMessageLi
     @KafkaListener(topics = {KAFKA_TOPIC})
     public void onMessage(ConsumerRecord<Long, String> consumerRecord, Acknowledgment acknowledgment) {
         log.info("ConsumerRecord: {}", consumerRecord);
+        assert acknowledgment != null;
         acknowledgment.acknowledge();
     }
 }

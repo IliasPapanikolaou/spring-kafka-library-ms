@@ -6,6 +6,7 @@ import com.unipi.ipap.libraryeventsconsumer.entity.LibraryEvent;
 import com.unipi.ipap.libraryeventsconsumer.repository.LibraryEventsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -26,6 +27,11 @@ public class LibraryEventsService {
     public void processLibraryEvent(ConsumerRecord<Long, String> consumerRecord) throws JsonProcessingException {
         LibraryEvent libraryEvent = objectMapper.readValue(consumerRecord.value(), LibraryEvent.class);
         log.info("LibraryEvent: {}", libraryEvent);
+
+        // Arbitrary condition to trigger a specific exception for demo purpose, do not use.
+        if (Objects.nonNull(libraryEvent.getLibraryEventId()) && libraryEvent.getLibraryEventId().equals(999L)) {
+            throw new RecoverableDataAccessException("Temporary Network Issue");
+        }
 
         switch (libraryEvent.getLibraryEventType()) {
             case NEW -> {

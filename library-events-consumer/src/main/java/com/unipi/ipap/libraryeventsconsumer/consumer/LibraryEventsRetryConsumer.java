@@ -9,21 +9,26 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class LibraryEventsConsumer {
-
-    private static final String KAFKA_TOPIC = "library-events";
+public class LibraryEventsRetryConsumer {
 
     private final LibraryEventsService eventsService;
 
-    public LibraryEventsConsumer(LibraryEventsService eventsService) {
+    public LibraryEventsRetryConsumer(LibraryEventsService eventsService) {
         this.eventsService = eventsService;
     }
 
-    // For two or more listeners, it is good practice to set the groupId explicitly, instead of application.properties.
-    @KafkaListener(topics = {KAFKA_TOPIC}, groupId = "library-events-listener-group")
+    @KafkaListener(
+            topics = {"${topics.retry}"},
+            autoStartup = "${retryListener.startup:true",
+            groupId = "retry-listener-group"
+    )
     public void onMessage(ConsumerRecord<Long, String> consumerRecord) throws JsonProcessingException {
 
-        log.info("ConsumerRecord: {}", consumerRecord);
+        log.info("ConsumerRecord in Retry Consumer: {}", consumerRecord);
+        consumerRecord.headers().forEach(header -> {
+            // Convert byte[] to string by passing byte[] to a new String()
+            log.info("Key: {}, Value: {}", header.key(), new String(header.value()));
+        });
         eventsService.processLibraryEvent(consumerRecord);
     }
 }

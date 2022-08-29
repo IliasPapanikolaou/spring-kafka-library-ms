@@ -64,7 +64,7 @@ public class LibraryEventsControllerIntegrationTest {
         consumer = new DefaultKafkaConsumerFactory<>(configs, new LongDeserializer(), new StringDeserializer())
                 .createConsumer();
 
-        embeddedKafkaBroker.consumeFromAllEmbeddedTopics(consumer);
+        embeddedKafkaBroker.consumeFromAnEmbeddedTopic(consumer, "library-events");
     }
 
     // Close Consumer after each test

@@ -65,7 +65,7 @@ public class LibraryEventsProducerUnitTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void sendLibraryEventSeccondApproachTestOnSuccess()
+    void sendLibraryEventSecondApproachTestOnSuccess()
             throws JsonProcessingException, ExecutionException, InterruptedException {
         // Given
         Book book = Book.builder()
