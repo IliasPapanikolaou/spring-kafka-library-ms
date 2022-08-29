@@ -13,6 +13,20 @@ Body:
 }
 ```
 
+> PUT endpoint: http://localhost:8080/v1/libraryEvent
+
+Body:
+```json
+{
+  "libraryEventId":1,
+  "book": {
+    "bookId": 1,
+    "bookName": "Title: Moby Dick",
+    "bookAuthor": "Author: Herman Melville"
+  }
+}
+```
+
 ### Kafka Producer Configurations
 
 Important configurations:
