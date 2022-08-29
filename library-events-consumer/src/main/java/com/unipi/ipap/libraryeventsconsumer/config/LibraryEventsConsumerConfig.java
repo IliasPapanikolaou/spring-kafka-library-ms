@@ -19,16 +19,16 @@ public class LibraryEventsConsumerConfig {
      * <p>
      * Taken from KafkaAnnotationDrivenConfiguration.class
      */
-    @Bean
-    ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory(
-            ConcurrentKafkaListenerContainerFactoryConfigurer configurer,
-            ObjectProvider<ConsumerFactory<Object, Object>> kafkaConsumerFactory) {
-
-        ConcurrentKafkaListenerContainerFactory<Object, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        configurer.configure(factory, kafkaConsumerFactory.getIfAvailable());
-        // Set Ack mode to Manual
-        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
-
-        return factory;
-    }
+//    @Bean
+//    ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory(
+//            ConcurrentKafkaListenerContainerFactoryConfigurer configurer,
+//            ObjectProvider<ConsumerFactory<Object, Object>> kafkaConsumerFactory) {
+//
+//        ConcurrentKafkaListenerContainerFactory<Object, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
+//        configurer.configure(factory, kafkaConsumerFactory.getIfAvailable());
+//        // Set Ack mode to Manual
+//        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
+//
+//        return factory;
+//    }
 }
