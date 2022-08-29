@@ -11,19 +11,31 @@ spring:
     activate:
       on-profile:
         - local
+
   kafka:
     consumer:
       bootstrap-servers: localhost:9092,localhost:9093,localhost:9094
       key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       group-id: library-events-listener-group # arbitrary name
+    # Producer is used for integrations testing only
+    producer:
+      bootstrap-servers: localhost:9092,localhost:9093,localhost:9094
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    # Template is used for integrations testing only
+    template:
+      default-topic: library-events
+
   datasource:
     url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
+
   jpa:
     database: h2
     database-platform: org.hibernate.dialect.H2Dialect
     generate-ddl: true
+
   h2:
     console:
       enabled: true

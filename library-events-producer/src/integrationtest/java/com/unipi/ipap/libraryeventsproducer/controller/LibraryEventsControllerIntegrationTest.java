@@ -31,6 +31,7 @@ import java.util.Objects;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+// Spins up the application context
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EmbeddedKafka(topics = {"library-events"}, partitions = 3)
 // Override default property for embedded kafka address
