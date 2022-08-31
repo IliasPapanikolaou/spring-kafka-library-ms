@@ -25,6 +25,7 @@ import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.ContainerTestUtils;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.HashMap;
@@ -51,6 +52,7 @@ import static org.mockito.Mockito.verify;
                 // Disables retry listener for these test: see @KafkaListener on LibraryEventsRetryConsumer.java
                 "retryListener.startup=false"
         })
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class LibraryEventsConsumerIntegrationTest {
 
     @Autowired
@@ -262,6 +264,48 @@ public class LibraryEventsConsumerIntegrationTest {
         embeddedKafkaBroker.consumeFromAnEmbeddedTopic(consumer, retryTopic);
 
         ConsumerRecord<Long, String> consumerRecord = KafkaTestUtils.getSingleRecord(consumer, retryTopic);
+
+        assertEquals(json, consumerRecord.value());
+    }
+
+    @Test
+    void publishUpdateLibraryEventNotValidLibraryEventIdDeadLetterTopic()
+            throws JsonProcessingException, ExecutionException, InterruptedException {
+        // Given
+        Book book = Book.builder()
+                .bookId(1111L)
+                .bookName("Updated Title")
+                .bookAuthor("Updated Author")
+                .build();
+
+        LibraryEvent libraryEvent = LibraryEvent.builder()
+                .libraryEventId(123L)
+                .book(book)
+                .libraryEventType(LibraryEventType.UPDATE)
+                .build();
+
+        // Create json string
+        String json = objectMapper.writeValueAsString(libraryEvent);
+
+        // Make the call synchronous with get()
+        kafkaTemplate.sendDefault(json).get();
+
+        // When timer expires (3 sec), it will continue
+        CountDownLatch latch = new CountDownLatch(1);
+        latch.await(5, TimeUnit.SECONDS);
+
+        // Then
+        // Verify number of method invocations - default Error handling retries 10 times,
+        // configured in LibraryEventsConsumerConfig to be 1 for IllegalArgumentException.class
+        verify(libraryEventsConsumerSpy, times(1)).onMessage(isA(ConsumerRecord.class));
+        verify(libraryEventsServiceSpy, times(1)).processLibraryEvent(isA(ConsumerRecord.class));
+
+        // Create consumer to test recover topic
+        Map<String, Object> configs = new HashMap<>(KafkaTestUtils.consumerProps("group2", "true", embeddedKafkaBroker));
+        consumer = new DefaultKafkaConsumerFactory<>(configs, new LongDeserializer(), new StringDeserializer()).createConsumer();
+        embeddedKafkaBroker.consumeFromAnEmbeddedTopic(consumer, deadLetterTopic);
+
+        ConsumerRecord<Long, String> consumerRecord = KafkaTestUtils.getSingleRecord(consumer, deadLetterTopic);
 
         assertEquals(json, consumerRecord.value());
     }
