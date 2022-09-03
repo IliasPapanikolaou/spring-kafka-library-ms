@@ -5,15 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unipi.ipap.libraryeventsconsumer.entity.Book;
 import com.unipi.ipap.libraryeventsconsumer.entity.LibraryEvent;
 import com.unipi.ipap.libraryeventsconsumer.entity.LibraryEventType;
+import com.unipi.ipap.libraryeventsconsumer.repository.FailureRecordRepository;
 import com.unipi.ipap.libraryeventsconsumer.repository.LibraryEventsRepository;
 import com.unipi.ipap.libraryeventsconsumer.service.LibraryEventsService;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -53,7 +52,7 @@ import static org.mockito.Mockito.verify;
                 "retryListener.startup=false"
         })
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class LibraryEventsConsumerIntegrationTest {
+class LibraryEventsConsumerIntegrationTest {
 
     @Autowired
     EmbeddedKafkaBroker embeddedKafkaBroker;
@@ -77,6 +76,9 @@ public class LibraryEventsConsumerIntegrationTest {
     LibraryEventsRepository libraryEventsRepository;
 
     private Consumer<Long, String> consumer;
+
+    @Autowired
+    private FailureRecordRepository failureRecordRepository;
 
     @Value("${topics.retry}")
     private String retryTopic;
@@ -227,6 +229,7 @@ public class LibraryEventsConsumerIntegrationTest {
     }
 
     @Test
+    @Disabled // publishingRecoverer() at LibraryEventsConsumerConfig should be enabled in order to work
     void publishUpdate999LibraryEventNotValid()
             throws JsonProcessingException, ExecutionException, InterruptedException {
         // Given
@@ -269,6 +272,7 @@ public class LibraryEventsConsumerIntegrationTest {
     }
 
     @Test
+    @Disabled // publishingRecoverer() at LibraryEventsConsumerConfig should be enabled in order to work
     void publishUpdateLibraryEventNotValidLibraryEventIdDeadLetterTopic()
             throws JsonProcessingException, ExecutionException, InterruptedException {
         // Given
@@ -308,5 +312,43 @@ public class LibraryEventsConsumerIntegrationTest {
         ConsumerRecord<Long, String> consumerRecord = KafkaTestUtils.getSingleRecord(consumer, deadLetterTopic);
 
         assertEquals(json, consumerRecord.value());
+    }
+
+    @Test
+    void publishUpdateLibraryEventIdNullLibraryEventFailureRecordDB()
+            throws JsonProcessingException, ExecutionException, InterruptedException {
+        // Given
+        Book book = Book.builder()
+                .bookId(1111L)
+                .bookName("Updated Title")
+                .bookAuthor("Updated Author")
+                .build();
+
+        LibraryEvent libraryEvent = LibraryEvent.builder()
+                .libraryEventId(null)
+                .book(book)
+                .libraryEventType(LibraryEventType.UPDATE)
+                .build();
+
+        // Create json string
+        String json = objectMapper.writeValueAsString(libraryEvent);
+
+        // Make the call synchronous with get()
+        kafkaTemplate.sendDefault(json).get();
+
+        // When timer expires (3 sec), it will continue
+        CountDownLatch latch = new CountDownLatch(1);
+        latch.await(5, TimeUnit.SECONDS);
+
+        // Then
+        // Verify number of method invocations - default Error handling retries 10 times,
+        // configured in LibraryEventsConsumerConfig to be 1 for IllegalArgumentException.class
+        verify(libraryEventsConsumerSpy, times(1)).onMessage(isA(ConsumerRecord.class));
+        verify(libraryEventsServiceSpy, times(1)).processLibraryEvent(isA(ConsumerRecord.class));
+
+        long count = failureRecordRepository.count();
+        assertEquals(1, count);
+
+        failureRecordRepository.findAll().forEach(failureRecord -> System.out.println("Failure record: " + failureRecord));
     }
 }
